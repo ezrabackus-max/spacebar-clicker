@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spacebar Clicker</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: Arial, Helvetica, sans-serif;
+    background: radial-gradient(circle at top, #182848, #0b1020 65%);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .game {
+    width: min(760px, 100%);
+    background: rgba(15, 23, 42, .94);
+    border: 1px solid #334155;
+    border-radius: 24px;
+    padding: 28px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.45);
+    text-align: center;
+  }
+  h1 { margin: 0 0 8px; font-size: clamp(30px, 7vw, 52px); }
+  .subtitle { color: #94a3b8; margin-bottom: 24px; }
+  .score {
+    font-size: clamp(52px, 12vw, 92px);
+    font-weight: 900;
+    line-height: 1;
+    margin: 10px 0;
+  }
+  .label { color: #94a3b8; }
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin: 24px 0;
+  }
+  .stat {
+    background: #111827;
+    border: 1px solid #334155;
+    border-radius: 15px;
+    padding: 14px;
+  }
+  .stat span { display: block; color: #94a3b8; font-size: 13px; }
+  .stat strong { display: block; font-size: 25px; margin-top: 5px; }
+  #spaceButton {
+    width: 100%;
+    min-height: 150px;
+    border: 3px solid #60a5fa;
+    border-radius: 20px;
+    background: linear-gradient(145deg, #2563eb, #1d4ed8);
+    color: white;
+    font-size: clamp(30px, 7vw, 55px);
+    font-weight: 900;
+    cursor: pointer;
+    box-shadow: 0 9px 0 #1e3a8a;
+    transition: transform .06s, box-shadow .06s;
+  }
+  #spaceButton:active {
+    transform: translateY(9px);
+    box-shadow: 0 0 0 #1e3a8a;
+  }
+  .upgrades {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-top: 20px;
+  }
+  .upgrade {
+    border: 1px solid #475569;
+    border-radius: 15px;
+    background: #1e293b;
+    color: white;
+    padding: 17px;
+    cursor: pointer;
+    text-align: left;
+  }
+  .upgrade:hover:not(:disabled) { background: #263449; }
+  .upgrade:disabled { opacity: .45; cursor: not-allowed; }
+  .upgrade b { display: block; font-size: 17px; margin-bottom: 5px; }
+  .upgrade small { color: #94a3b8; }
+  .controls { margin-top: 18px; }
+  #reset {
+    border: 0;
+    border-radius: 10px;
+    padding: 10px 15px;
+    background: #334155;
+    color: white;
+    cursor: pointer;
+  }
+  .hint { margin-top: 14px; color: #64748b; font-size: 13px; }
+  @media (max-width: 550px) {
+    .stats, .upgrades { grid-template-columns: 1fr; }
+    .game { padding: 20px; }
+  }
+</style>
+</head>
+<body>
+<main class="game" id="game">
+  <h1>🚀 Spacebar Clicker</h1>
+  <div class="subtitle">How fast can you hit the spacebar?</div>
+
+  <div class="score" id="score">0</div>
+  <div class="label">SPACE CLICKS</div>
+
+  <section class="stats">
+    <div class="stat">
+      <span>Per Press</span>
+      <strong id="power">1</strong>
+    </div>
+    <div class="stat">
+      <span>Auto / Second</span>
+      <strong id="auto">0</strong>
+    </div>
+    <div class="stat">
+      <span>Best Score</span>
+      <strong id="best">0</strong>
+    </div>
+  </section>
+
+  <button id="spaceButton" type="button">SPACEBAR</button>
+
+  <section class="upgrades">
+    <button class="upgrade" id="powerUpgrade" type="button">
+      <b>⚡ Space Power</b>
+      <small>+1 click per press • Cost: <span id="powerCost">25</span></small>
+    </button>
+
+    <button class="upgrade" id="autoUpgrade" type="button">
+      <b>🤖 Auto Clicker</b>
+      <small>+1 click every second • Cost: <span id="autoCost">100</span></small>
+    </button>
+  </section>
+
+  <div class="controls">
+    <button id="reset" type="button">Reset Game</button>
+  </div>
+
+  <div class="hint">Press SPACE on your keyboard or click the big button.</div>
+</main>
+
+<script>
+(() => {
+  let score = 0;
+  let power = 1;
+  let auto = 0;
+  let best = Number(localStorage.getItem("spacebarBest") || 0);
+  let powerCost = 25;
+  let autoCost = 100;
+
+  const scoreEl = document.getElementById("score");
+  const powerEl = document.getElementById("power");
+  const autoEl = document.getElementById("auto");
+  const bestEl = document.getElementById("best");
+  const powerCostEl = document.getElementById("powerCost");
+  const autoCostEl = document.getElementById("autoCost");
+  const powerUpgrade = document.getElementById("powerUpgrade");
+  const autoUpgrade = document.getElementById("autoUpgrade");
+  const spaceButton = document.getElementById("spaceButton");
+  const resetButton = document.getElementById("reset");
+
+  function update() {
+    scoreEl.textContent = Math.floor(score).toLocaleString();
+    powerEl.textContent = power.toLocaleString();
+    autoEl.textContent = auto.toLocaleString();
+    bestEl.textContent = Math.floor(best).toLocaleString();
+    powerCostEl.textContent = powerCost.toLocaleString();
+    autoCostEl.textContent = autoCost.toLocaleString();
+
+    powerUpgrade.disabled = score < powerCost;
+    autoUpgrade.disabled = score < autoCost;
+  }
+
+  function earn(amount) {
+    score += amount;
+    if (score > best) {
+      best = score;
+      localStorage.setItem("spacebarBest", String(Math.floor(best)));
+    }
+    update();
+  }
+
+  function pressSpace() {
+    earn(power);
+    spaceButton.animate(
+      [
+        { transform: "translateY(0)" },
+        { transform: "translateY(7px)" },
+        { transform: "translateY(0)" }
+      ],
+      { duration: 80 }
+    );
+  }
+
+  spaceButton.addEventListener("click", pressSpace);
+
+  powerUpgrade.addEventListener("click", () => {
+    if (score >= powerCost) {
+      score -= powerCost;
+      power += 1;
+      powerCost = Math.ceil(powerCost * 1.65);
+      update();
+    }
+  });
+
+  autoUpgrade.addEventListener("click", () => {
+    if (score >= autoCost) {
+      score -= autoCost;
+      auto += 1;
+      autoCost = Math.ceil(autoCost * 1.8);
+      update();
+    }
+  });
+
+  resetButton.addEventListener("click", () => {
+    if (confirm("Reset your Spacebar Clicker score?")) {
+      score = 0;
+      power = 1;
+      auto = 0;
+      powerCost = 25;
+      autoCost = 100;
+      update();
+    }
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (
+      event.code === "Space" &&
+      !["INPUT", "TEXTAREA", "SELECT", "BUTTON"].includes(
+        document.activeElement.tagName
+      )
+    ) {
+      event.preventDefault();
+      pressSpace();
+    }
+  });
+
+  setInterval(() => {
+    if (auto > 0) earn(auto);
+  }, 1000);
+
+  update();
+})();
+</script>
+</body>
+</html>
